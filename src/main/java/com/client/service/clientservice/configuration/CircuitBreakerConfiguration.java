@@ -3,6 +3,9 @@ package com.client.service.clientservice.configuration;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -28,8 +31,18 @@ public class CircuitBreakerConfiguration {
                 .build();
 
         CircuitBreakerRegistry circuitBreakerRegistry = CircuitBreakerRegistry.of(config);
+
+        //monitoring with Micrometer
+        MeterRegistry meterRegistry = new SimpleMeterRegistry();
+        TaggedCircuitBreakerMetrics
+                .ofCircuitBreakerRegistry(circuitBreakerRegistry)
+                .bindTo(meterRegistry);
+
+
         CircuitBreaker circuitBreaker = circuitBreakerRegistry.circuitBreaker("Default");
 
+
+        //logs for events
         circuitBreaker.getEventPublisher()
                 .onFailureRateExceeded(e -> System.out.println("Circuit Breaker Failure Rate Exceeded:" + e));
         circuitBreaker.getEventPublisher()
